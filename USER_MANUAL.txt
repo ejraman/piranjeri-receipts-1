@@ -1,0 +1,62 @@
+Piranjeri Temples Trust Receipt App User Manual
+
+1. Who uses this app
+This app is for the 3 trust users:
+- esrivasan
+- pmk45in
+- admin3
+
+2. Login
+- Open the app link in your browser
+- Enter username and password
+- On first login, change the password
+- Only one user can stay logged in at a time
+- If another user is active, wait or ask them to logout
+- If no activity happens for 15 minutes, the app logs out automatically
+
+3. Create a receipt
+- Open the New Receipt tab
+- Search donor by name or mobile number
+- Select the correct donor
+- Enter amount
+- Choose payment method
+- For cheque: enter cheque number and cheque date
+- For bank transfer: enter date of credit
+- Choose purpose from dropdown
+- Add optional note if needed
+- Click Generate receipt PDF
+- Download the PDF
+- Send it by WhatsApp to the donor
+
+4. If donor is not found
+- Open Add donor section
+- Enter donor name
+- Enter mobile number
+- Save donor
+- Search again and continue with receipt
+
+5. If donor details are wrong
+- Open Donor Management tab
+- Search the donor
+- Edit name, mobile number or notes
+- Save changes
+
+6. Receipt history
+- Open Receipt History tab
+- Search by receipt number, donor name or mobile
+- Download the old receipt again
+- Re-download keeps the same receipt number
+
+7. Important rules
+- Always verify donor name and mobile before creating a receipt
+- Mobile number should be real and updated
+- Avoid creating duplicate donors
+- Same name with different mobile should be checked carefully
+
+8. Password safety
+- Do not share passwords in public groups
+- Change password if it becomes known to others
+
+9. Google Drive
+- If configured, the app uploads receipts to Google Drive automatically
+- If not configured yet, download still works
