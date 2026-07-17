@@ -1927,6 +1927,10 @@ def render_edit_void(user: str):
     _css()
     st.markdown("#### 🔧 Edit or Void an Expense")
 
+    fs_list   = _fund_sources()
+    fest_list = _festivals()
+    mh_list   = _major_heads()
+
     cur_fy = _fy(date.today())
     yr = int(cur_fy[:4])
     fy_opts = [cur_fy, f"{yr-1}-{str(yr)[2:]}"]
@@ -2056,6 +2060,3 @@ def render_edit_void(user: str):
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Delete failed: {ex}")
-                    st.error(f"Delete failed: {ex}")
-
-
