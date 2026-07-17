@@ -2060,3 +2060,131 @@ def render_edit_void(user: str):
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Delete failed: {ex}")
+                        def render_bank_statement(user: str):
+    """Stand-alone Bank Statement page — called from bank_statement.py."""
+    _css()
+    st.markdown("#### 🏦 Bank Statement — Savings Account")
+    _today2 = date.today()
+    _fy_yr2 = _today2.year if _today2.month >= 4 else _today2.year - 1
+    cur_fy2 = f"{_fy_yr2}-{str(_fy_yr2+1)[2:]}"
+    prev_fy2 = f"{_fy_yr2-1}-{str(_fy_yr2)[2:]}"
+    bk_fy_opts = [prev_fy2, cur_fy2]
+    bk_fy = st.selectbox("Financial Year", bk_fy_opts, key="bk_fy")
+    bk_yr = int(bk_fy[:4])
+    bk_d_from = date(bk_yr, 4, 1)
+    bk_d_to   = date(bk_yr+1, 3, 31) if _today2 > date(bk_yr+1, 3, 31) else _today2
+    bk1, bk2 = st.columns(2)
+    with bk1: bk_from = st.date_input("From", value=bk_d_from, key="bk_from")
+    with bk2: bk_to   = st.date_input("To",   value=bk_d_to,   key="bk_to")
+    if st.button("📊 Generate Bank Statement", type="primary", key="bk_load"):
+        ob, ob_err = _bank_opening(bk_fy)
+        if ob_err:
+            st.error(f"Database error: {ob_err}")
+        elif ob is None:
+            st.warning(f"⚠️ No opening balance found for FY {bk_fy}.")
+        else:
+            ob_savings = float(ob["savings_balance"])
+            movements = _bank_movements(bk_from, bk_to)
+            if not movements:
+                st.info("No bank transactions for this period.")
+            else:
+                running = ob_savings
+                total_cr = total_dr = 0.0
+                rows_html = ""
+                for r in movements:
+                    cr = float(r["credit"]); dr = float(r["debit"])
+                    running = running + cr - dr
+                    total_cr += cr; total_dr += dr
+                    dt = r["dt"].strftime("%d %b %Y") if hasattr(r["dt"],"strftime") else str(r["dt"])
+                    cr_cell = f"<td style='text-align:right;padding:5px 8px;color:#166534'>₹{cr:,.2f}</td>" if cr else "<td></td>"
+                    dr_cell = f"<td style='text-align:right;padding:5px 8px;color:#991b1b'>₹{dr:,.2f}</td>" if dr else "<td></td>"
+                    rows_html += (f"<tr style='border-bottom:1px solid #e2e8f0'>"
+                                  f"<td style='padding:5px 8px'>{dt}</td>"
+                                  f"<td style='padding:5px 8px'>{r.get('narration','')[:55]}</td>"
+                                  f"{cr_cell}{dr_cell}"
+                                  f"<td style='text-align:right;font-weight:600;padding:5px 8px'>₹{running:,.2f}</td>"
+                                  f"</tr>")
+                foot = (f"<tfoot><tr style='font-weight:700;background:#f0fdf4'>"
+                        f"<td colspan='3' style='padding:6px 8px'>CLOSING BALANCE</td>"
+                        f"<td style='text-align:right;padding:6px 8px;color:#166534'>₹{total_cr:,.2f}</td>"
+                        f"<td style='text-align:right;padding:6px 8px;color:#991b1b'>₹{total_dr:,.2f}</td>"
+                        f"<td style='text-align:right;padding:6px 8px'>₹{running:,.2f}</td>"
+                        f"</tr></tfoot>")
+                st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:.8rem">
+                <thead><tr style="background:#1e40af;color:white">
+                  <th style="padding:6px 8px">Date</th><th style="padding:6px 8px">Narration</th>
+                  <th style="text-align:right;padding:6px 8px">Credit ₹</th>
+                  <th style="text-align:right;padding:6px 8px">Debit ₹</th>
+                  <th style="text-align:right;padding:6px 8px">Balance ₹</th>
+                </tr></thead><tbody>{rows_html}</tbody>{foot}</table>""",
+                unsafe_allow_html=True)
+                csv_data = _bank_csv(movements, ob_savings, bk_from, bk_to)
+                st.download_button("⬇️ Download CSV", data=csv_data,
+                    file_name=f"Bank_Statement_{bk_fy}.csv", mime="text/csv")
+
+
+def render_edit_void(user: str):
+    """Stand-alone Edit/Void page — called from edit_void.py."""
+    _css()
+    st.markdown("#### 🔧 Edit or Void an Expense")
+    fs_list   = _fund_sources()
+    fest_list = _festivals()
+    mh_list   = _major_heads()
+    cur_fy = _fy(date.today())
+    yr = int(cur_fy[:4])
+    fy_opts = [cur_fy, f"{yr-1}-{str(yr)[2:]}"]
+    ec1, ec2 = st.columns([1, 3])
+    with ec1: ev_fy = st.selectbox("FY", fy_opts, key="ev_fy2")
+    with ec2: ev_q  = st.text_input("Search description or ID", key="ev_q2",
+                                     placeholder="e.g. flowers  or  42")
+    if st.button("🔍 Search", key="ev_search2"):
+        st.session_state.ev_results2 = _search_expenses(ev_fy, ev_q.strip())
+        st.session_state.ev_sel2 = None
+    results_ev = st.session_state.get("ev_results2")
+    if results_ev is not None:
+        if not results_ev:
+            st.info("No entries found.")
+        else:
+            id_label = {r["id"]: f"#{r['id']} · {r['txn_date'].strftime('%d %b %Y')} · {r['fund_code']} · ₹{float(r['amount']):,.0f}" for r in results_ev}
+            sel_id = st.selectbox("Select entry to edit / void",
+                options=[None] + list(id_label.keys()),
+                format_func=lambda x: "— pick a row —" if x is None else id_label[x],
+                key="ev_sel2")
+            if sel_id:
+                sel = next(r for r in results_ev if r["id"] == sel_id)
+                with st.form("edit_form2"):
+                    fe1, fe2 = st.columns(2)
+                    with fe1: e_date = st.date_input("Date", value=sel["txn_date"])
+                    with fe2:
+                        modes = ["CASH","CHEQUE","BANK_TRANSFER"]
+                        e_mode = st.selectbox("Mode", modes, index=modes.index(sel["payment_mode"] or "CASH"))
+                    mh_opts_e = {m["id"]: f"{m['code']} — {m['name']}" for m in mh_list}
+                    mh_keys_e = list(mh_opts_e.keys())
+                    e_mh = st.selectbox("Head", mh_keys_e,
+                        index=mh_keys_e.index(sel["major_head_id"]) if sel["major_head_id"] in mh_keys_e else 0,
+                        format_func=lambda x: mh_opts_e[x])
+                    e_amt = st.number_input("Amount", min_value=1.0, value=float(sel["amount"]), step=50.0, format="%.2f")
+                    e_desc = st.text_input("Description", value=sel.get("description") or "", max_chars=60) or None
+                    e_paid = st.text_input("Paid To", value=sel.get("paid_to") or "", max_chars=50) or None
+                    b1, b2 = st.columns([3, 1])
+                    with b1: do_save = st.form_submit_button("💾 Save Changes", type="primary")
+                    with b2: do_void = st.form_submit_button("🗑️ Delete", type="secondary")
+                if do_save:
+                    try:
+                        _update_expense(sel_id, {"txn_date": e_date, "fund_source_id": sel["fund_source_id"],
+                            "festival_id": sel["festival_id"], "major_head_id": e_mh,
+                            "amount": float(e_amt), "payment_mode": e_mode,
+                            "cheque_no": sel.get("cheque_no"), "description": e_desc, "paid_to": e_paid})
+                        st.success(f"✅ Entry #{sel_id} updated.")
+                        st.session_state.ev_results2 = None
+                        st.cache_data.clear(); st.rerun()
+                    except Exception as ex:
+                        st.error(f"Save failed: {ex}")
+                if do_void:
+                    try:
+                        _void_expense(sel_id)
+                        st.success(f"✅ Entry #{sel_id} deleted.")
+                        st.session_state.ev_results2 = None
+                        st.cache_data.clear(); st.rerun()
+                    except Exception as ex:
+                        st.error(f"Delete failed: {ex}")
