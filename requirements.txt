@@ -1,6 +1,5 @@
 streamlit
-reportlab
-pypdf
+pg8000
 pandas
+reportlab
 openpyxl
-psycopg2-binary
